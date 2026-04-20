@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  bot:
+    build: .
+    container_name: message_sniper_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./message_sniper.db:/app/message_sniper.db
+      - ./logs:/app/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - sniper_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: message_sniper_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - sniper_net
+
+volumes:
+  redis_data:
+
+networks:
+  sniper_net:
+    driver: bridge
